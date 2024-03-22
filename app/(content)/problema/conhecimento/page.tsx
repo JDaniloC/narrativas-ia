@@ -11,8 +11,8 @@ const openSans = Open_Sans({
 
 export default function ProblemaKnownPage() {
   return (
-    <div className={`${openSans.className} flex w-auto h-auto`}>
-        <div className="text-white text-xl gap-10 max-w-[700px] p-4 flex flex-col mt-20">
+    <div className={`${openSans.className} flex lg:size-full flex-col-reverse lg:flex-row`}>
+        <div className="text-white text-xl gap-10 p-10 flex flex-col lg:mt-20 w-full lg:w-2/5">
             <p>
                 Apesar de o termo ter ganhado popularidade com chatbots, como o ChatGPT que você já deve conhecer, essa tecnologia está presente há mais tempo. Na década de 90, programas de xadrez computacional, como o Deep Thought, começaram a desafiar os campeões mundiais.
             </p>
@@ -26,20 +26,19 @@ export default function ProblemaKnownPage() {
                 A Inteligência Artificial é como ensinamos computadores a pensar e aprender como seres humanos. É uma tecnologia que ajuda as máquinas a entenderem coisas. Mas, assim como tem pontos positivos, também pode ter desafios, como quando queremos manter nossas informações privadas, evitar decisões injustas ou entender como os computadores tomam decisões.
             </p>
         </div>
-        <div className='size-full'>
-            <Image
-              objectFit="cover"
-              src={blockMoldure1Img}
-              alt="block moldure image"
-              style={{ position: 'relative',width: '80%', height: '80%', marginTop:'11vh', marginBottom:'11.2vh', left:'8vw' }}
-            />
-            <div className='max-w-[600px]'>
-                <p className="text-black text-right text-2xl relative top-[-50vh] left-[23vh] font-bold">
-                    A Inteligência Artificial é um campo da ciência da computação que busca desenvolver sistemas capazes de realizar tarefas que, tradicionalmente, demandam inteligência humana. <br/>
-                    Isso inclui a capacidade de aprender com experiências passadas, resolver problemas,<br/> 
-                    reconhecer padrões e interagir de forma adaptativa com o ambiente.
-                </p>
+        <div className='right-0 size-full lg:w-2/3 p-10 relative'>
+            <div className='size-full'>
+              <Image
+                objectFit="cover"
+                src={blockMoldure1Img}
+                alt="block moldure image"
+                style={{ marginLeft: 'auto' }}
+              />
             </div>
+            <p className="text-black text-right absolute w-4/5 right-10 font-bold p-10 top-[10vw] 2xl:top-1/3 text-md md:text-2xl">
+              A Inteligência Artificial é um campo da ciência da computação que busca desenvolver sistemas capazes de realizar tarefas que, tradicionalmente, demandam inteligência humana. <br/>
+              Isso inclui a capacidade de aprender com experiências passadas, resolver problemas, reconhecer padrões e interagir de forma adaptativa com o ambiente.
+            </p>
         </div>
     </div>
   );
