@@ -21,7 +21,7 @@ const MyComponent: React.FC = () => {
               alt="block moldure image"
               style={{ position: 'relative',width: '80%', height: '80%', marginTop:'11vh', marginBottom:'11.2vh', left:'4vw' }}
             />
-            <div style={{ maxWidth:'800px'}}>
+            <div style={{ maxWidth:'600px'}}>
                 <h1 className={styles.textContainerConfig}>
                 {text5}
                 </h1>

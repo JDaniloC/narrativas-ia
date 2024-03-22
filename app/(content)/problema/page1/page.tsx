@@ -33,9 +33,11 @@ export default function ProblemaKnownPage() {
               alt="block moldure image"
               style={{ position: 'relative',width: '80%', height: '80%', marginTop:'11vh', marginBottom:'11.2vh', left:'8vw' }}
             />
-            <div className='max-w-[800px]'>
-                <p className="text-black text-right text-3xl relative top-[-60vh] left-[23vh] font-bold">
-                    A Inteligência Artificial é um campo da ciência da computação que busca desenvolver sistemas capazes de realizar tarefas que, tradicionalmente, demandam inteligência humana. Isso inclui a capacidade de aprender com experiências passadas, resolver problemas, reconhecer padrões e interagir de forma adaptativa com o ambiente.
+            <div className='max-w-[600px]'>
+                <p className="text-black text-right text-2xl relative top-[-50vh] left-[23vh] font-bold">
+                    A Inteligência Artificial é um campo da ciência da computação que busca desenvolver sistemas capazes de realizar tarefas que, tradicionalmente, demandam inteligência humana. <br/>
+                    Isso inclui a capacidade de aprender com experiências passadas, resolver problemas,<br/> 
+                    reconhecer padrões e interagir de forma adaptativa com o ambiente.
                 </p>
             </div>
         </div>
