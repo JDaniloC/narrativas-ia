@@ -1,16 +1,26 @@
-from moviepy.editor import ImageClip, CompositeVideoClip, AudioFileClip
+from moviepy.editor import (ImageClip, CompositeVideoClip,
+                            AudioFileClip, AudioClip,
+                            concatenate_audioclips)
 from os import listdir, path
 import numpy as np
+
+def get_number(file_name: str):
+    if not file_name.startswith("."):
+        page = file_name.split("_")[-1]
+        return int(page.split(".")[0])
+    return 0
 
 def to_rgb(image: ImageClip):
     return np.dstack(3 * [1 * image]).astype('uint8')
 
 def create_video(file_name: str, image_path: str, audio_path: str | None):
     audio = None
-    duration = 10
+    duration = 7
     if audio_path is not None:
         audio = AudioFileClip(audio_path)
-        duration = audio.duration
+        blank = AudioClip(make_frame=lambda t: 0, duration=0.5)
+        audio = concatenate_audioclips((blank, audio, blank))
+        duration = max(audio.duration + 1, 5)
 
     clip = ImageClip(image_path, transparent=False)
     if len(clip.img.shape) == 2:
@@ -45,8 +55,7 @@ ASSETS_FOLDER = "./assets"
 VIDEOS_FOLDER = "./videos"
 
 assets = listdir(ASSETS_FOLDER)
-get_number_func = lambda x: int(x.split("_")[1].split(".")[0])
-for file_name in sorted(assets, key=get_number_func):
+for file_name in sorted(assets, key=get_number):
     if file_name.endswith(IMAGE_SUFFIX):
         audio_file_name = AUDIO_PREFIX + file_name.replace(IMAGE_SUFFIX,
                                                            AUDIO_SUFFIX)
