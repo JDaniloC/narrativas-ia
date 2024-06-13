@@ -7,7 +7,7 @@ import { IconOpenAI, IconUser } from '@/components/ui/icons'
 import { ChatMessageActions } from '@/components/chat-message-actions'
 import { MessageStream } from '../lib/types'
 import { useEffect, useState } from 'react'
-import { useChat } from '../app/(chat)/chat-context'
+import { useChat } from '../app/chat/chat-context'
 
 export interface ChatMessageProps {
   message: MessageStream

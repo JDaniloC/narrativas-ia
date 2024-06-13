@@ -4,6 +4,7 @@ import { GeistMono } from 'geist/font/mono'
 
 import '@/app/globals.css'
 import "driver.js/dist/driver.css";
+import "react-responsive-carousel/lib/styles/carousel.min.css";
 
 import { cn } from '@/lib/utils'
 import { TailwindIndicator } from '@/components/tailwind-indicator'
@@ -13,10 +14,10 @@ import { Header } from '@/components/header'
 export const metadata = {
   metadataBase: new URL(`https://${process.env.VERCEL_URL}`),
   title: {
-    default: 'Narrativas Inovadoras sobre IA',
+    default: 'Narrativas Inovadoras com IA',
     template: `%s - Narrativas Inovadoras`
   },
-  description: 'Uma plataforma que reúne perspectivas sobre Inteligência Artificial',
+  description: 'Uma plataforma de criação de histórias com Inteligência Artificial',
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon-16x16.png',
