@@ -1,33 +1,31 @@
+from audios import concatenate_audios, gen_unreal_audio, unreal_voices
 from functools import partial
 import gradio as gr
 import numpy as np
-import random
-import os
+import pytesseract
 
 def extract_text(image: np.ndarray) -> list[str]:
-    return ["Sim... Olá...", "Papai? Sim... Eu estou indo ver as estrelas."]
+    full_text = pytesseract.image_to_string(image)
+    return [text for text in full_text.split("\n\n") if text.strip() != ""]
 
-def delete_text(index: int, text_list: list[str]) -> list[str]:
+def delete_text(index: int, *text_list: list[str]) -> list[str]:
     return [x for i, x in enumerate(text_list) if i != index]
 
 def save_image_texts(*text_list: list[str]) -> tuple[list[str], list[None]]:
     gr.Tabs(selected="text-to-audio")
     return text_list, [None for _ in range(len(text_list))]
 
-def generate_audio_from_text(index: int, text: str,
-                             audio_list: list[np.ndarray]
-                             ) -> tuple[str, list[np.ndarray]]:
-    audios = os.listdir("./audios")
-    audio_name = random.choice(audios)
-    audio_path = f"./audios/{audio_name}"
-    
-    audio_list[index] = audio_path
-    return audio_path, audio_list
-
-def concatenate_audios(audios: list[np.ndarray]) -> np.ndarray:
-    gr.Tabs(selected="image-to-video")
-    audios = [audio for audio in audios if audio]
-    return audios[0] if len(audios) > 0 else None
+def generate_audio_from_text(index: int, text: str, voice: str,
+                             audio_list: list[bytes]
+                             ) -> tuple[bytes|None, list[bytes]]:
+    """
+    Call the function to generate an audio file from the given text.
+    Returns the generated audio bytes and the updated audio list.
+    """
+    audio_bytes = gen_unreal_audio(text, voice)
+    if audio_bytes is not None:
+        audio_list[index] = audio_bytes
+    return audio_bytes, audio_list
 
 def animate_image(image: np.ndarray) -> tuple[str, str]:
     return "./videos/1_0.mp4", "./videos/1_0.mp4"
@@ -40,10 +38,11 @@ with gr.Blocks(
 ) as app:
     gr.Markdown("""
 # Narrativas inovadoras
-                
+
 > Transforme sua Graphic Novel em um vídeo animado
 """)
     text_state = gr.State([])
+    r_text_state = gr.State([])
     audio_state = gr.State([])
 
     with gr.Tabs() as tabs:
@@ -53,17 +52,19 @@ with gr.Blocks(
             1. Insira a imagem da página da Graphic Novel
             2. Verifique e corrija o texto extraído
             3. Submeta o texto corrigido para a próxima etapa
-            
-            > A ordem importa!
+
+            > A ordem importa! Aguarde com paciência a geração dos textos...
             """)
             with gr.Row():
-                image_input = gr.Image()
-                image_input.upload(fn=extract_text,
-                                   inputs=[image_input],
-                                   outputs=[text_state])
+                with gr.Column():
+                    image_input = gr.Image()
+                    upload_img_btn = gr.Button("Carregar imagem")
+                    upload_img_btn.click(fn=extract_text,
+                                         inputs=[image_input],
+                                         outputs=[text_state])
 
                 @gr.render(inputs=[text_state], triggers=[text_state.change])
-                def extract_text(text_list: list[str]):
+                def show_text_rows(text_list: list[str]):
                     with gr.Column():
                         text_inputs = list()
                         for index, text_value in enumerate(list(text_list)):
@@ -73,13 +74,13 @@ with gr.Blocks(
                                 bti = gr.Button(value="✖️", variant="stop",
                                                 size="sm")
                                 bti.click(fn=partial(delete_text, index),
-                                          inputs=[text_state],
+                                          inputs=text_inputs,
                                           outputs=[text_state])
                             text_inputs.append(ti)
                         image_button = gr.Button("Submeter transcrições")
-                    image_button.click(fn=save_image_texts,
-                                       inputs=text_inputs,
-                                       outputs=[text_state, audio_state])
+                        image_button.click(fn=save_image_texts,
+                                           inputs=text_inputs,
+                                           outputs=[r_text_state, audio_state])
 
         with gr.Tab("text-to-audio", id="text-to-audio"):
             gr.Markdown("""## Geração dos áudios
@@ -87,20 +88,25 @@ with gr.Blocks(
             2. Gere os áudios que serão unidos
             3. Submeta os áudios para a próxima etapa
             """)
-            audio_reference_image = gr.Image(interactive=False)
-
-            @gr.render(inputs=[text_state], triggers=[text_state.change])
-            def show_audio_rows(img_texts: list[str]):
-                for index, text_value in enumerate(img_texts):
+            @gr.render(inputs=[r_text_state, audio_state],
+                       triggers=[r_text_state.change])
+            def show_audio_rows(img_texts: list[str], audios: list[np.ndarray]):
+                for index, text_value in enumerate(list(img_texts)):
                     with gr.Row():
                         with gr.Column():
                             text_input = gr.Textbox(value=text_value,
                                                     label=f"Balão {index+1}")
+                            voice_select = gr.Dropdown(choices=unreal_voices,
+                                                        label="Voz do áudio",
+                                                        value="Scarlett")
                             generate_btn = gr.Button("Regerar áudio")
-                        audio_output = gr.Audio()
+                        audio_output = gr.Audio(label=f"Áudio {index+1}",
+                                                value=audios[index],
+                                                interactive=False)
+                    gr.Markdown("---")
                     generate_btn.click(partial(generate_audio_from_text, index),
-                                       inputs=[text_input, audio_state],
-                                       outputs=[audio_output, audio_state])
+                                        inputs=[text_input, voice_select, audio_state],
+                                        outputs=[audio_output, audio_state])
             audio_button = gr.Button("Submeter áudios")
 
         with gr.Tab("image-to-video", id="image-to-video"):
@@ -113,8 +119,8 @@ with gr.Blocks(
                 video_reference_image = gr.ImageEditor(interactive=True)
                 video_output = gr.Video(interactive=False)
             video_button = gr.Button("Regerar vídeo")
-        image_input.change(lambda x: (x, x), image_input,
-                           [audio_reference_image, video_reference_image])
+        image_input.change(fn=lambda x: x, inputs=image_input,
+                           outputs=[video_reference_image])
 
         with gr.Tab("product", id="product"):
             gr.Markdown("""## Gerar a cena
@@ -142,6 +148,5 @@ with gr.Blocks(
         video_button.click(fn=animate_image,
                             inputs=image_input,
                             outputs=[video_output, video_input])
-
 if __name__ == "__main__":
     app.queue().launch()
