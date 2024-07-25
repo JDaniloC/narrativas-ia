@@ -1,18 +1,22 @@
-from audios import concatenate_audios, gen_unreal_audio, unreal_voices
+from audios import (concatenate_audios, gen_unreal_audio, get_duration,
+                    gen_azure_audio, unreal_voices, voice_mapping)
+from images import animate_static_image, resize_image
+from videos import add_audio_to_video, join_videos
 from functools import partial
+from PIL import Image
 import gradio as gr
 import numpy as np
 import pytesseract
 
-def extract_text(image: np.ndarray) -> list[str]:
+def extract_text(image: Image) -> list[str]:
     full_text = pytesseract.image_to_string(image)
     return [text for text in full_text.split("\n\n") if text.strip() != ""]
 
 def delete_text(index: int, *text_list: list[str]) -> list[str]:
     return [x for i, x in enumerate(text_list) if i != index]
 
-def save_image_texts(*text_list: list[str]) -> tuple[list[str], list[None]]:
-    gr.Tabs(selected="text-to-audio")
+def save_image_texts(*text_list: list[str]
+                     ) -> tuple[list[str], list[None]]:
     return text_list, [None for _ in range(len(text_list))]
 
 def generate_audio_from_text(index: int, text: str, voice: str,
@@ -22,16 +26,23 @@ def generate_audio_from_text(index: int, text: str, voice: str,
     Call the function to generate an audio file from the given text.
     Returns the generated audio bytes and the updated audio list.
     """
-    audio_bytes = gen_unreal_audio(text, voice)
+    if voice in unreal_voices:
+        audio_bytes = gen_unreal_audio(text, voice)
+    else:
+        audio_bytes = gen_azure_audio(text, voice)
+
     if audio_bytes is not None:
         audio_list[index] = audio_bytes
     return audio_bytes, audio_list
 
-def animate_image(image: np.ndarray) -> tuple[str, str]:
-    return "./videos/1_0.mp4", "./videos/1_0.mp4"
+def animate_image(image: Image, audio: tuple[int, np.array]
+                  ) -> tuple[str, str]:
+    duration = get_duration(audio)
+    video_path = animate_static_image(image, duration)
+    return video_path, video_path
 
-def generate_scene(video: np.ndarray, audios: list[np.ndarray]) -> str:
-    return "./videos/1_0.mp4"
+def generate_scene(video_path: str, audio_path: str) -> str:
+    return add_audio_to_video(video_path, audio_path)
 
 with gr.Blocks(
     title="Criatividade Computacional"
@@ -57,7 +68,11 @@ with gr.Blocks(
             """)
             with gr.Row():
                 with gr.Column():
-                    image_input = gr.Image()
+                    image_input = gr.Image(label="Imagem da página",
+                                           type="pil")
+                    image_input.upload(fn=resize_image,
+                                       inputs=image_input, 
+                                       outputs=image_input)
                     upload_img_btn = gr.Button("Carregar imagem")
                     upload_img_btn.click(fn=extract_text,
                                          inputs=[image_input],
@@ -96,9 +111,9 @@ with gr.Blocks(
                         with gr.Column():
                             text_input = gr.Textbox(value=text_value,
                                                     label=f"Balão {index+1}")
-                            voice_select = gr.Dropdown(choices=unreal_voices,
-                                                        label="Voz do áudio",
-                                                        value="Scarlett")
+                            voice_select = gr.Dropdown(choices=voice_mapping,
+                                                       label="Voz do áudio",
+                                                       value=voice_mapping[0])
                             generate_btn = gr.Button("Regerar áudio")
                         audio_output = gr.Audio(label=f"Áudio {index+1}",
                                                 value=audios[index],
@@ -133,20 +148,21 @@ with gr.Blocks(
                     video_input = gr.Video(label="Imagem animada",
                                            interactive=False)
                     audio_input = gr.Audio(label="Áudio unido",
-                                           interactive=False)
+                                           interactive=False,
+                                           type="filepath")
                 animation_output = gr.Video(label="Cena dublada",
                                             interactive=False)
 
             animation_button = gr.Button("Gerar cena")
             animation_button.click(generate_scene,
-                                   [video_output, audio_state],
+                                   [video_output, audio_input],
                                    [animation_output])
 
         audio_button.click(fn=concatenate_audios,
                             inputs=[audio_state],
-                            outputs=[audio_input])
+                            outputs=audio_input)
         video_button.click(fn=animate_image,
-                            inputs=image_input,
+                            inputs=[image_input, audio_input],
                             outputs=[video_output, video_input])
 if __name__ == "__main__":
     app.queue().launch()
