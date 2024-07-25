@@ -8,16 +8,29 @@ import gradio as gr
 import numpy as np
 import pytesseract
 
-def extract_text(image: Image) -> list[str]:
-    full_text = pytesseract.image_to_string(image)
-    return [text for text in full_text.split("\n\n") if text.strip() != ""]
-
 def delete_text(index: int, *text_list: list[str]) -> list[str]:
     return [x for i, x in enumerate(text_list) if i != index]
 
-def save_image_texts(*text_list: list[str]
+def set_order(index: int, order: str,
+              order_info: dict[int, int]) -> dict[int, int]:
+    order_info = dict(order_info)
+    order_info[index] = int(order)
+    return order_info
+
+def save_image_texts(order_info: dict[int, int], *text_list: list[str], 
                      ) -> tuple[list[str], list[None]]:
-    return text_list, [None for _ in range(len(text_list))]
+    ordered_texts: list[tuple[int, str]] = list()
+    for index, text in enumerate(text_list):
+        order = order_info.get(index, index + 1) - 1
+        ordered_texts.append((order, text))
+    ordered_texts = sorted(ordered_texts, key=lambda x: x[0])
+    ordered_texts = [x[1] for x in ordered_texts]
+    return ordered_texts, [None for _ in range(len(text_list))]
+
+def extract_text(image: Image) -> list[str]:
+    full_text: str = pytesseract.image_to_string(image)
+    return [text for text in full_text.split("\n\n")
+            if text.strip() != ""]
 
 def generate_audio_from_text(index: int, text: str, voice: str,
                              audio_list: list[bytes]
@@ -35,9 +48,8 @@ def generate_audio_from_text(index: int, text: str, voice: str,
         audio_list[index] = audio_bytes
     return audio_bytes, audio_list
 
-def animate_image(image: Image, audio: tuple[int, np.array]
-                  ) -> tuple[str, str]:
-    duration = get_duration(audio)
+def animate_image(image: Image, audio_path: str) -> tuple[str, str]:
+    duration = get_duration(audio_path)
     video_path = animate_static_image(image, duration)
     return video_path, video_path
 
@@ -52,9 +64,10 @@ with gr.Blocks(
 
 > Transforme sua Graphic Novel em um vídeo animado
 """)
-    text_state = gr.State([])
-    r_text_state = gr.State([])
-    audio_state = gr.State([])
+    text_state = gr.State(list())
+    order_state = gr.State(dict())
+    r_text_state = gr.State(list())
+    audio_state = gr.State(list())
 
     with gr.Tabs() as tabs:
         with gr.Tab("image-to-text", id="image-to-text"):
@@ -78,23 +91,38 @@ with gr.Blocks(
                                          inputs=[image_input],
                                          outputs=[text_state])
 
-                @gr.render(inputs=[text_state], triggers=[text_state.change])
-                def show_text_rows(text_list: list[str]):
+                @gr.render(inputs=[text_state, order_state],
+                           triggers=[text_state.change])
+                def show_text_rows(text_list: list[str],
+                                   order_info: dict[int, str]):
+                    order_list = [str(i+1) for i in range(len(text_list))]
                     with gr.Column():
                         text_inputs = list()
                         for index, text_value in enumerate(list(text_list)):
                             with gr.Row():
-                                ti = gr.Textbox(value=text_value,
-                                                label=f"Balão {index+1}")
+                                curr_order = order_info.get(index, index+1)
+                                order = gr.Dropdown(label="Ordem do balão",
+                                                    choices=order_list,
+                                                    value=str(curr_order))
                                 bti = gr.Button(value="✖️", variant="stop",
                                                 size="sm")
-                                bti.click(fn=partial(delete_text, index),
-                                          inputs=text_inputs,
-                                          outputs=[text_state])
+                            ti = gr.Textbox(value=text_value,
+                                            label=f"Balão {index+1}")
+                            order.change(fn=partial(set_order, index),
+                                            inputs=[order, order_state],
+                                            outputs=[order_state])
+                            bti.click(fn=partial(delete_text, index),
+                                        inputs=text_inputs,
+                                        outputs=[text_state])
                             text_inputs.append(ti)
-                        image_button = gr.Button("Submeter transcrições")
-                        image_button.click(fn=save_image_texts,
+                        with gr.Row():
+                            add_text_btn = gr.Button("Adicionar texto")
+                            image_button = gr.Button("Submeter transcrições")
+                        add_text_btn.click(fn=lambda *x: x + ("",),
                                            inputs=text_inputs,
+                                           outputs=[text_state])
+                        image_button.click(fn=save_image_texts,
+                                           inputs=[order_state] + text_inputs,
                                            outputs=[r_text_state, audio_state])
 
         with gr.Tab("text-to-audio", id="text-to-audio"):
@@ -109,11 +137,11 @@ with gr.Blocks(
                 for index, text_value in enumerate(list(img_texts)):
                     with gr.Row():
                         with gr.Column():
-                            text_input = gr.Textbox(value=text_value,
-                                                    label=f"Balão {index+1}")
                             voice_select = gr.Dropdown(choices=voice_mapping,
                                                        label="Voz do áudio",
                                                        value=voice_mapping[0])
+                            text_input = gr.Textbox(value=text_value,
+                                                    label=f"Balão {index+1}")
                             generate_btn = gr.Button("Regerar áudio")
                         audio_output = gr.Audio(label=f"Áudio {index+1}",
                                                 value=audios[index],
