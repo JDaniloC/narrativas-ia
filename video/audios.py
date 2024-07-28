@@ -50,11 +50,12 @@ def gen_azure_audio(text: str, voice_key: str) -> bytes:
     if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
         return result.audio_data
 
-def concatenate_audios(audios: list[bytes]) -> str:
+def concatenate_audios(audios: list[bytes]) -> str|None:
     """
     Concatenate the audios of the list where isn't None.
     Returns the path of the concatenated audio file.
     """
+    if audios is None or len(audios) == 0: return
     first_audio = io.BytesIO(audios[0])
     concat_audio: AudioSegment = AudioSegment.from_file(first_audio)
     for audio in audios[1:]:
