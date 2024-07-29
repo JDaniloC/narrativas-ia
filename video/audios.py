@@ -20,7 +20,7 @@ def gen_unreal_audio(text: str, voice_key: str) -> bytes:
         "VoiceId": voice,
         "Bitrate": "192k",
         "Speed": "0",
-        "Pitch": "1",
+        "Pitch": "1" if voice != "Scarlett" else "1.5",
         "Codec": "libmp3lame",
         "Temperature": 0.25
     }

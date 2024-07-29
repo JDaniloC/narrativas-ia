@@ -1,12 +1,12 @@
 from audios import (concatenate_audios, gen_unreal_audio, get_duration,
                     gen_azure_audio, unreal_voices, voice_mapping)
 from images import animate_static_image, resize_image
+from texts import extract_text, extract_advanced_text
 from videos import add_audio_to_video, join_videos
 from functools import partial
 from PIL import Image
 import gradio as gr
 import numpy as np
-import pytesseract
 
 def delete_item(index: int, *item_list: list[str]) -> list[str]:
     """
@@ -47,16 +47,6 @@ def save_image_texts(order_info: dict[int, int], *text_list: list[str],
     ordered_texts = sorted(ordered_texts, key=lambda x: x[0])
     ordered_texts = [x[1] for x in ordered_texts]
     return ordered_texts, [None for _ in range(len(text_list))]
-
-def extract_text(image: Image) -> list[str]:
-    """
-    Extracts the text from the given image using Tesseract OCR.
-    If the text is empty, the function will return a list with
-    a single element that is an empty string.
-    """
-    full_text: str = pytesseract.image_to_string(image)
-    return [text for text in full_text.split("\n\n")
-            if text.strip() != ""] or [""]
 
 def resize_and_extract_text(image: Image) -> tuple[np.ndarray, list[str]]:
     """
@@ -142,11 +132,16 @@ with gr.Blocks(
             > A ordem importa! Aguarde com paciência a geração dos textos...
             """)
             with gr.Row():
-                image_input = gr.Image(label="Imagem da página",
-                                        type="pil")
-                image_input.upload(fn=resize_and_extract_text,
-                                    inputs=image_input, 
-                                    outputs=[image_input, text_state])
+                with gr.Column():
+                    itt_btn = gr.Button("Extrair texto avançado")
+                    image_input = gr.Image(label="Imagem da página",
+                                            type="pil")
+                    image_input.upload(fn=resize_and_extract_text,
+                                        inputs=image_input, 
+                                        outputs=[image_input, text_state])
+                    itt_btn.click(fn=extract_advanced_text,
+                                  inputs=image_input,
+                                  outputs=[text_state])
 
                 @gr.render(inputs=[text_state, order_state],
                            triggers=[text_state.change])
